@@ -11,31 +11,26 @@ class Api
     /**
      * @var \Symfony\Component\HttpFoundation\Request $request
      */
-    private $request;
-
-    private $merchantAccount;
-    private $skinCode;
-    private $secretKey;
-    private $host;
-    private $timeout;
-    private $shopperLocale;
+    protected $request;
 
     /**
-     * @param string      $merchantAccount
-     * @param string      $skinCode
-     * @param string      $secretKey
+     * @var account[]
+     */
+    protected $accounts;
+    protected $host;
+    protected $timeout;
+    protected $shopperLocale;
+
+    /**
+     * @param AccountsFactory   $accountsFactory
      * @param boolean     $test
      * @param integer     $timeout
-     * @param string|null $shopperLocale
      */
-    public function __construct($merchantAccount, $skinCode, $secretKey, $test, $timeout, $shopperLocale)
+    public function __construct($accountsFactory, $test, $timeout)
     {
-        $this->merchantAccount = $merchantAccount;
-        $this->skinCode = $skinCode;
-        $this->secretKey = $secretKey;
+        $this->accounts = $accountsFactory->create();
         $this->host = sprintf('https://%s.adyen.com', $test ? 'test' : 'live');
         $this->timeout = $timeout;
-        $this->shopperLocale = $shopperLocale;
     }
 
     public function setRequest(Request $request = null)
@@ -45,6 +40,7 @@ class Api
 
     /**
      * @return array
+     * @throws \JMS\Payment\CoreBundle\Plugin\Exception\CommunicationException
      */
     public function getBankList()
     {
@@ -68,13 +64,13 @@ class Api
         return $banks;
     }
 
-    public function start($id, $amount, $currency, $returnUrl, $method, $bank = null)
+    public function start($id, $amount, $currency, $returnUrl, $merchantAccount, $method, $bank = null)
     {
         if($method === 'adyen_ideal') {
-            return $this->startIdeal($id, $amount, $currency, $returnUrl, $bank);
+            return $this->startIdeal($id, $amount, $currency, $returnUrl, $merchantAccount, $bank);
         }
 
-        return $this->startHostedPaymentPages($id, $amount, $currency, $returnUrl, $method);
+        return $this->startHostedPaymentPages($id, $amount, $currency, $returnUrl, $merchantAccount, $method);
     }
 
     /**
@@ -85,15 +81,17 @@ class Api
      * @param string $returnUrl
      * @return string
      */
-    public function startIdeal($id, $amount, $currency, $returnUrl, $bank)
+    public function startIdeal($id, $amount, $currency, $returnUrl, $merchantAccount, $bank)
     {
+        $account = $this->getAccountByMerchantAccount($merchantAccount);
+
         $parameters = array();
         $parameters['paymentAmount']     = $amount * 100;
         $parameters['currencyCode']      = $currency;
         $parameters['shipBeforeDate']    = date('Y-m-d', strtotime('+1 hour'));
         $parameters['merchantReference'] = $id;
-        $parameters['skinCode']          = $this->skinCode;
-        $parameters['merchantAccount']   = $this->merchantAccount;
+        $parameters['skinCode']          = $account->getSkinCode();
+        $parameters['merchantAccount']   = $merchantAccount;
         $parameters['sessionValidity']   = date(DATE_ATOM, strtotime('+1 hour'));
         $parameters['skipSelection']     = 'true';
         $parameters['brandCode']         = 'ideal';
@@ -116,18 +114,22 @@ class Api
      * @param string $amount
      * @param string $currency
      * @param string $returnUrl
+     * @param string $merchantAccount
      * @param string $method
      * @return string
      */
-    public function startHostedPaymentPages($id, $amount, $currency, $returnUrl, $method)
+    public function startHostedPaymentPages($id, $amount, $currency, $returnUrl, $merchantAccount, $method)
     {
+
+        $account = $this->getAccountByMerchantAccount($merchantAccount);
+
         $parameters = array();
         $parameters['paymentAmount']       = $amount * 100;
         $parameters['currencyCode']        = $currency;
         $parameters['shipBeforeDate']      = date('Y-m-d', strtotime('+1 hour'));
         $parameters['merchantReference']   = $id;
-        $parameters['skinCode']            = $this->skinCode;
-        $parameters['merchantAccount']     = $this->merchantAccount;
+        $parameters['skinCode']            = $account->getSkinCode();
+        $parameters['merchantAccount']     = $merchantAccount;
         $parameters['sessionValidity']     = date(DATE_ATOM, strtotime('+1 hour'));
         $parameters['shopperReference']    = '1';
         $parameters['recurringContract']   = null;
@@ -195,19 +197,42 @@ class Api
                 $data[] = $parameters[$key];
             }
         }
-        
-        return base64_encode(hash_hmac('sha1', implode($data), $this->secretKey, true));
+
+        $account = $this->getAccountByMerchantAccount($parameters['merchantAccount']);
+
+        return base64_encode(hash_hmac('sha1', implode($data), $account->getSecretKey(), true));
     }
 
     /**
+     * @param string $merchantAccount
      * @return Notification|bool
      */
-    public function getNotification()
+    public function getNotification($merchantAccount)
     {
         if($this->request->getMethod() === 'POST') {
             return Notification::createFromRequest($this->request->request);
         }
 
-        return Notification::createFromQuery($this->request->query, $this->secretKey);
+        $account = $this->getAccountByMerchantAccount($merchantAccount);
+
+        return Notification::createFromQuery($this->request->query, $account->getSecretKey());
     }
+
+    public function getAccountByMerchantAccount($merchantAccount)
+    {
+        foreach ($this->accounts as $account) {
+            if ($account->getMerchantAccount($merchantAccount)) {
+                return $account;
+            }
+        }
+    }
+
+    /**
+     * @param Account[] $accounts
+     */
+    public function setAccounts($accounts)
+    {
+        $this->accounts = $accounts;
+    }
+
 }

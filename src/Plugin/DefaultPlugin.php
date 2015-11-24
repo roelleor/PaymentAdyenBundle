@@ -12,6 +12,7 @@ use JMS\Payment\CoreBundle\Plugin\Exception\BlockedException;
 use JMS\Payment\CoreBundle\Plugin\Exception\FinancialException;
 use JMS\Payment\CoreBundle\Plugin\PluginInterface;
 use Monolog\Logger;
+use Ruudk\Payment\AdyenBundle\Adyen\AccountInterface;
 use Ruudk\Payment\AdyenBundle\Adyen\Api;
 
 class DefaultPlugin extends AbstractPlugin
@@ -54,7 +55,10 @@ class DefaultPlugin extends AbstractPlugin
             throw $this->createAdyenRedirectActionException($transaction);
         }
 
-        if(false === $notification = $this->api->getNotification()) {
+        $data = $transaction->getExtendedData();
+        $merchantAccount = $data['merchantAccount'];
+
+        if(false === $notification = $this->api->getNotification($merchantAccount)) {
             if($this->logger) {
                 $this->logger->info('No notification received!');
             }
@@ -149,6 +153,7 @@ class DefaultPlugin extends AbstractPlugin
             $payment->getTargetAmount(),
             $paymentInstruction->getCurrency(),
             $data->get('return_url'),
+            $data->get('merchantAccount'),
             $paymentInstruction->getPaymentSystemName()
         );
 
@@ -158,4 +163,5 @@ class DefaultPlugin extends AbstractPlugin
 
         return $actionRequest;
     }
+
 }

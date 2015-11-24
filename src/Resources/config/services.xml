@@ -7,6 +7,7 @@
     <parameters>
         <parameter key="ruudk_payment_adyen.controller.notification.class">Ruudk\Payment\AdyenBundle\Controller\NotificationController</parameter>
         <parameter key="ruudk_payment_adyen.adyen.api.class">Ruudk\Payment\AdyenBundle\Adyen\Api</parameter>
+        <parameter key="ruudk_payment_adyen.adyen.accounts_factory.class">Ruudk\Payment\AdyenBundle\Adyen\AccountsFactory</parameter>
         <parameter key="ruudk_payment_adyen.plugin.default.class">Ruudk\Payment\AdyenBundle\Plugin\DefaultPlugin</parameter>
         <parameter key="ruudk_payment_adyen.plugin.ideal.class">Ruudk\Payment\AdyenBundle\Plugin\IdealPlugin</parameter>
         <parameter key="ruudk_payment_adyen.form.adyen_type.class">Ruudk\Payment\AdyenBundle\Form\AdyenType</parameter>
@@ -32,6 +33,9 @@
             <call method="setRequest">
                 <argument type="service" id="request" on-invalid="null" strict="false" />
             </call>
+        </service>
+
+        <service id="ruudk_payment_adyen.accounts_factory" class="%ruudk_payment_adyen.adyen.accounts_factory.class%">
         </service>
 
         <service id="ruudk_payment_adyen.plugin.default" class="%ruudk_payment_adyen.plugin.default.class%">

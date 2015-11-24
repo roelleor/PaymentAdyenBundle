@@ -22,24 +22,30 @@ class RuudkPaymentAdyenExtension extends Extension
         $loader = new Loader\XmlFileLoader($container, new FileLocator(__DIR__.'/../Resources/config'));
         $loader->load('services.xml');
 
+        $accountsDefinition = $container->getDefinition('ruudk_payment_adyen.accounts_factory');
+        $accountsDefinition->setArguments(array($config['accounts']));
+
         $apiDefinition = $container->getDefinition('ruudk_payment_adyen.api');
         $apiDefinition->setArguments(array(
-            $config['merchant_account'],
-            $config['skin_code'],
-            $config['secret_key'],
+            $accountsDefinition,
             $config['test'],
             $config['timeout'],
-            $config['shopper_locale']
         ));
 
-        foreach($config['methods'] AS $method) {
+        $methods = [];
+        foreach ($config['accounts'] as $accountConfig) {
+            $methods = array_merge($methods, $accountConfig['methods']);
+        };
+        $methods = array_unique($methods);
+
+        foreach($methods AS $method) {
             $this->addFormType($container, $method);
         }
 
         /**
          * When iDeal is not enabled, remove the cache warmer.
          */
-        if(!in_array('ideal', $config['methods'])) {
+        if(!in_array('ideal', $methods)) {
             $container->removeDefinition('ruudk_payment_adyen.cache_warmer');
         }
 

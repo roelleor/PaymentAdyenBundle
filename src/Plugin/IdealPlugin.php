@@ -54,6 +54,7 @@ class IdealPlugin extends DefaultPlugin
             $payment->getTargetAmount(),
             $paymentInstruction->getCurrency(),
             $data->get('return_url'),
+            $data->get('merchantAccount'),
             $data->get('bank')
         );
 
