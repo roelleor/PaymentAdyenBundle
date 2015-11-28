@@ -34,7 +34,6 @@ class Configuration implements ConfigurationInterface
                             ->scalarNode('shopper_locale')
                                 ->defaultValue(null)
                             ->end()
-                            ->fixXmlConfig('method')
                             ->arrayNode('methods')
                                 ->defaultValue($methods)
                                 ->prototype('scalar')
