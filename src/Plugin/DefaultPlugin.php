@@ -56,7 +56,7 @@ class DefaultPlugin extends AbstractPlugin
         }
 
         $data = $transaction->getExtendedData();
-        $merchantAccount = $data['merchantAccount'];
+        $merchantAccount = $data->get('merchantAccount');
 
         if(false === $notification = $this->api->getNotification($merchantAccount)) {
             if($this->logger) {
