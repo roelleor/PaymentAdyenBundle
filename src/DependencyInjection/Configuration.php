@@ -15,7 +15,7 @@ class Configuration implements ConfigurationInterface
         $treeBuilder = new TreeBuilder();
         $rootNode = $treeBuilder->root('ruudk_payment_adyen');
 
-        $methods = array('ideal', 'mister_cash', 'direct_ebanking', 'giropay', 'credit_card');
+        $methods = array('ideal', 'mister_cash', 'direct_ebanking', 'giropay', 'credit_card', 'hpp_select');
 
         $rootNode
             ->children()

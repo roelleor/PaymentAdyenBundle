@@ -66,6 +66,7 @@ class Api
 
     public function start($id, $amount, $currency, $returnUrl, $merchantAccount, $method, $bank = null)
     {
+
         if($method === 'adyen_ideal') {
             return $this->startIdeal($id, $amount, $currency, $returnUrl, $merchantAccount, $bank);
         }
@@ -78,6 +79,7 @@ class Api
      * @param string $bank_id
      * @param string $amount
      * @param string $currency
+     * @param string $merchantAccount
      * @param string $returnUrl
      * @return string
      */
@@ -148,6 +150,12 @@ class Api
          * Convert method to adyen methodname
          */
         switch($method) {
+
+            case 'ideal_no_pre_bank_selection':
+                $parameters['allowedMethods'] = 'ideal';
+                $parameters['countryCode'] = 'nl';
+                break;
+
             case 'adyen_mister_cash':
                 $parameters['allowedMethods'] = 'bcmc';
                 $parameters['countryCode'] = 'BE';
